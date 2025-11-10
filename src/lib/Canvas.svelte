@@ -3,8 +3,9 @@ import { onMount, tick } from "svelte";
 import { requestGpuDeviceAndContext } from "./gpu/requestGpuDeviceAndContext";
 import { setupGpuPipelines } from "./gpu/setupGpuPipelines";
 import { createGpuRenderer } from "./gpu/createGpuRenderer";
-    import { Camera } from "./Camera.svelte";
-    import { CameraOrbit } from "./CameraOrbit.svelte";
+import { Camera } from "./Camera.svelte";
+import { CameraOrbit } from "./CameraOrbit.svelte";
+import Draggable, {type Point} from "./Draggable.svelte";
 
 let {
     onStatusChange,
@@ -21,10 +22,12 @@ let width = $state(300);
 let height = $state(150);
 
 let nParticles = $state(2_000);
-let render: () => Promise<void>;
+let render: (() => Promise<void>) | null = null;
 
 
 const rerender = async () => {
+    if (render === null) return;
+
     onStatusChange("rendering");
     await render();
     onStatusChange("done!");
@@ -57,8 +60,16 @@ onMount(async () => {
 
 <svelte:window onresize={() => updateCanvasSizeAndRerender()} />
 
-<canvas
-    bind:this={canvas}
-    {width}
-    {height}
-></canvas>
+<Draggable onDrag={async ({movement}) => {
+    orbit.move(movement);
+    await rerender();
+}}>
+    {#snippet dragTarget({onpointerdown})}
+        <canvas
+            bind:this={canvas}
+            {width}
+            {height}
+            {onpointerdown}
+        ></canvas>
+    {/snippet}
+</Draggable>
