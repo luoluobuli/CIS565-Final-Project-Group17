@@ -3,21 +3,23 @@ import type { Camera } from "$lib/Camera.svelte";
 export const createGpuRenderer = ({
     device,
     context,
+
     renderPipeline,
-    renderBindGroup,
+    uniformsBindGroup,
     
-    particlePosBuffer,
     uniformsBuffer,
+    particleDataBuffer,
 
     nParticles,
     camera,
 }: {
     device: GPUDevice,
     context: GPUCanvasContext,
-    renderBindGroup: GPUBindGroup,
+
+    uniformsBindGroup: GPUBindGroup,
     renderPipeline: GPURenderPipeline,
 
-    particlePosBuffer: GPUBuffer,
+    particleDataBuffer: GPUBuffer,
     uniformsBuffer: GPUBuffer,
 
     nParticles: number,
@@ -26,9 +28,12 @@ export const createGpuRenderer = ({
     return async () => {
         device.queue.writeBuffer(uniformsBuffer, 0, camera.viewInvProj.buffer);
         
-        const commandEncoder = device.createCommandEncoder();
+        const commandEncoder = device.createCommandEncoder({
+            label: "render command encoder",
+        });
 
         const renderPassEncoder = commandEncoder.beginRenderPass({
+            label: "render pass",
             colorAttachments: [
                 {
                     clearValue: {
@@ -44,8 +49,8 @@ export const createGpuRenderer = ({
                 },
             ],
         });
-        renderPassEncoder.setBindGroup(0, renderBindGroup);
-        renderPassEncoder.setVertexBuffer(0, particlePosBuffer);
+        renderPassEncoder.setBindGroup(0, uniformsBindGroup);
+        renderPassEncoder.setVertexBuffer(0, particleDataBuffer);
         renderPassEncoder.setPipeline(renderPipeline);
         renderPassEncoder.draw(nParticles);
         renderPassEncoder.end();

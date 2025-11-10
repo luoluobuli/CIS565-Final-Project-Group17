@@ -9,3 +9,11 @@ struct Uniforms {
 
     viewInvProjMat: mat4x4f, // 64
 }
+
+struct ParticleData {
+    // 0
+
+    pos: vec4f, // 16
+    vel: vec3f, // 28
+    mass: f32, // 32
+}

@@ -1,6 +1,7 @@
 import commonModuleSrc from "./shader/_common.wgsl?raw";
 import vertexModuleSrc from "./shader/vertex.wgsl?raw";
 import fragmentModuleSrc from "./shader/fragment.wgsl?raw";
+import simulationStepModuleSrc from "./shader/simulationStep.wgsl?raw";
 
 export const setupGpuPipelines = ({
     device,
@@ -11,38 +12,47 @@ export const setupGpuPipelines = ({
     format: GPUTextureFormat,
     nParticles: number,
 }) => {
-    const particlePosBuffer = device.createBuffer({
-        size: nParticles * 4 * 4,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+    const particleDataBuffer1 = device.createBuffer({
+        label: "particle data ping-pong buffer 1",
+        size: nParticles * 32,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
     });
-    const particlePosArray = new Float32Array(nParticles * 4);
+    const particleDataBuffer2 = device.createBuffer({
+        label: "particle data ping-pong buffer 2",
+        size: nParticles * 32,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
+    });
+    const particleDataArray = new Float32Array(nParticles * 8);
     for (let i = 0; i < nParticles; i++) {
-        particlePosArray[i * 4] = Math.random();
-        particlePosArray[i * 4 + 1] = Math.random();
-        particlePosArray[i * 4 + 2] = Math.random();
-        particlePosArray[i * 4 + 3] = 1;
+        particleDataArray[i * 8] = Math.random();
+        particleDataArray[i * 8 + 1] = Math.random();
+        particleDataArray[i * 8 + 2] = Math.random();
+        particleDataArray[i * 8 + 3] = 1;
     }
-    device.queue.writeBuffer(particlePosBuffer, 0, particlePosArray);
+    device.queue.writeBuffer(particleDataBuffer1, 0, particleDataArray);
 
 
     const uniformsBuffer = device.createBuffer({
+        label: "uniforms buffer",
         size: 64,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
     });
 
-    const renderBindGroupLayout = device.createBindGroupLayout({
+    const uniformsBindGroupLayout = device.createBindGroupLayout({
+        label: "uniforms bind group layout",
         entries: [
             {
                 binding: 0,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                 buffer: {
                     type: "uniform",
                 },
             },
         ],
     });
-    const renderBindGroup = device.createBindGroup({
-        layout: renderBindGroupLayout,
+    const uniformsBindGroup = device.createBindGroup({
+        label: "uniforms bind group",
+        layout: uniformsBindGroupLayout,
         entries: [
             {
                 binding: 0,
@@ -53,14 +63,25 @@ export const setupGpuPipelines = ({
         ],
     });
     const renderPipelineLayout = device.createPipelineLayout({
-        bindGroupLayouts: [renderBindGroupLayout],
+        label: "render pipeline",
+        bindGroupLayouts: [uniformsBindGroupLayout],
     });
 
 
-    const vertexModule = device.createShaderModule({code: commonModuleSrc + vertexModuleSrc});
-    const fragmentModule = device.createShaderModule({code: commonModuleSrc + fragmentModuleSrc});
+    const vertexModule = device.createShaderModule({
+        label: "vertex module",
+        code: commonModuleSrc + vertexModuleSrc,
+    });
+    const fragmentModule = device.createShaderModule({
+        label: "fragment module",
+        code: commonModuleSrc + fragmentModuleSrc,
+    });
     
     const renderPipeline = device.createRenderPipeline({
+        label: "render pipeline",
+
+        layout: renderPipelineLayout,
+
         vertex: {
             module: vertexModule,
             entryPoint: "vert",
@@ -73,7 +94,7 @@ export const setupGpuPipelines = ({
                             format: "float32x4",
                         },
                     ],
-                    arrayStride: 16,
+                    arrayStride: 32,
                     stepMode: "vertex",
                 },
             ],
@@ -92,9 +113,98 @@ export const setupGpuPipelines = ({
         primitive: {
             topology: "point-list",
         },
-
-        layout: renderPipelineLayout,
     });
 
-    return {particlePosBuffer, uniformsBuffer, renderBindGroup, renderPipeline};
+
+    const simulationStepStorageBindGroupLayout = device.createBindGroupLayout({
+        label: "simulation step storage bind group layout",
+        
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: {
+                    type: "storage",
+                },
+            },
+
+            {
+                binding: 1,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: {
+                    type: "storage",
+                },
+            },
+        ],
+    });
+    const simulationStepStorageBindGroup1_2 = device.createBindGroup({
+        label: "simulation step storage bind group, 1 -> 2",
+
+        layout: simulationStepStorageBindGroupLayout,
+        entries: [
+            {
+                binding: 0,
+                resource: {
+                    buffer: particleDataBuffer1,
+                },
+            },
+
+            {
+                binding: 1,
+                resource: {
+                    buffer: particleDataBuffer2,
+                },
+            },
+        ],
+    });
+    const simulationStepStorageBindGroup2_1 = device.createBindGroup({
+        label: "simulation step storage bind group, 2 -> 1",
+
+        layout: simulationStepStorageBindGroupLayout,
+        entries: [
+            {
+                binding: 0,
+                resource: {
+                    buffer: particleDataBuffer2,
+                },
+            },
+
+            {
+                binding: 1,
+                resource: {
+                    buffer: particleDataBuffer1,
+                },
+            },
+        ],
+    });
+    const simulationStepPipelineLayout = device.createPipelineLayout({
+        label: "simulation step pipeline layout",
+        bindGroupLayouts: [uniformsBindGroupLayout, simulationStepStorageBindGroupLayout],
+    });
+
+    const simulationStepModule = device.createShaderModule({
+        label: "simulation step module",
+        code: commonModuleSrc + simulationStepModuleSrc,
+    });
+    
+    const simulationStepPipeline = device.createComputePipeline({
+        label: "simulation step pipeline",
+        layout: simulationStepPipelineLayout,
+
+        compute: {
+            module: simulationStepModule,
+            entryPoint: "doSimulationStep",
+        },
+    });
+
+
+    return {
+        particleDataBuffer1,
+        particleDataBuffer2,
+        uniformsBuffer,
+        uniformsBindGroup,
+        simulationStepStorageBindGroup: simulationStepStorageBindGroup1_2,
+        renderPipeline,
+        simulationStepPipeline,
+    };
 };
