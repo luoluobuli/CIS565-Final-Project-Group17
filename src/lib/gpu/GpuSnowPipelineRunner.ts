@@ -110,15 +110,13 @@ export class GpuSnowPipelineRunner {
             if (timeToSimulate > MAX_SIMULATION_DRIFT_MS) {
                 // if drifting too much, drop simulation steps 
                 nSimulationStep += Math.ceil(timeToSimulate / simulationTimestepMs);
+            } else {
+                while (timeToSimulate > 0) {
+                    await this.doSimulationStep();
 
-                currentSimulationTime = simulationStartTime + nSimulationStep * simulationTimestepMs;
-                timeToSimulate = Date.now() - currentSimulationTime;
-            }
-            while (timeToSimulate > 0) {
-                await this.doSimulationStep();
-
-                nSimulationStep++;
-                timeToSimulate -= simulationTimestepMs;
+                    nSimulationStep++;
+                    timeToSimulate -= simulationTimestepMs;
+                }
             }
 
 
