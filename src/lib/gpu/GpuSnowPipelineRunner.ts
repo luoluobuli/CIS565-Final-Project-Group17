@@ -63,15 +63,19 @@ export class GpuSnowPipelineRunner {
 
     }
 
-    async doSimulationStep() {
+    async doSimulationSteps(nSteps: number) {
         const commandEncoder = this.device.createCommandEncoder({
             label: "simulation step command encoder",
         });
-        this.simulationStepPipelineManager.addComputePass({
-            commandEncoder,
-            nParticles: this.nParticles,
-            buffer1IsSource: this.buffer1IsSource,
-        });
+        
+        for (let i = 0; i < nSteps; i++) {
+            this.simulationStepPipelineManager.addComputePass({
+                commandEncoder,
+                nParticles: this.nParticles,
+                buffer1IsSource: this.buffer1IsSource,
+            });
+        }
+
         this.device.queue.submit([commandEncoder.finish()]);
         await this.device.queue.onSubmittedWorkDone();
 
@@ -107,17 +111,13 @@ export class GpuSnowPipelineRunner {
             // catch up the simulation to the current time
             let currentSimulationTime = simulationStartTime + nSimulationStep * simulationTimestepMs;
             let timeToSimulate = Date.now() - currentSimulationTime;
-            if (timeToSimulate > MAX_SIMULATION_DRIFT_MS) {
-                // if drifting too much, drop simulation steps 
-                nSimulationStep += Math.ceil(timeToSimulate / simulationTimestepMs);
-            } else {
-                while (timeToSimulate > 0) {
-                    await this.doSimulationStep();
 
-                    nSimulationStep++;
-                    timeToSimulate -= simulationTimestepMs;
-                }
+            const nSteps = Math.ceil(timeToSimulate / simulationTimestepMs);
+            // if drifting too much, drop simulation steps 
+            if (timeToSimulate <= MAX_SIMULATION_DRIFT_MS) {
+                await this.doSimulationSteps(nSteps);
             }
+            nSimulationStep += nSteps;
 
 
             await this.render();
