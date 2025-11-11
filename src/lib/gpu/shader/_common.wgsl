@@ -16,7 +16,16 @@ struct ParticleData {
     // 0
 
     pos: vec3f, // 12
-    _dummy: f32, // 16
+    _hom: f32, // 16
     vel: vec3f, // 28
-    mass: f32, // 32
+    // 32
+    affine: vec3f, // 44
+    mass: f32, // 48
+}
+
+struct GridData {
+    // 0
+
+    vel: vec3f, // 12
+    mass: f32, // 16
 }

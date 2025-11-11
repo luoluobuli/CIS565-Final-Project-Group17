@@ -21,7 +21,8 @@ let width = $state(300);
 let height = $state(150);
 
 let nParticles = $state(2_000);
-let simulationTimestep = $state(1 / 144);
+let gridResolution = $state(8);
+let simulationTimestepS = $state(1 / 144);
 
 const updateCanvasSize = async () => {
     width = innerWidth;
@@ -38,7 +39,7 @@ onMount(async () => {
     const response = await requestGpuDeviceAndContext({onStatusChange, onErr, canvas});
     if (response === null) return;
     const {device, context, format} = response;
-    const runner = new GpuSnowPipelineRunner({device, format, context, nParticles, simulationTimestepS: simulationTimestep, camera});
+    const runner = new GpuSnowPipelineRunner({device, format, context, nParticles, gridResolution, simulationTimestepS, camera});
 
     updateCanvasSize();
 

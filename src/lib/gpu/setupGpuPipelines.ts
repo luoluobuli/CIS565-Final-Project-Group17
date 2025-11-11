@@ -2,69 +2,56 @@ import commonModuleSrc from "./shader/_common.wgsl?raw";
 import vertexModuleSrc from "./shader/vertex.wgsl?raw";
 import fragmentModuleSrc from "./shader/fragment.wgsl?raw";
 import simulationStepModuleSrc from "./shader/simulationStep.wgsl?raw";
+import type { GpuSnowUniformsManager } from "./GpuSnowUniformsManager";
 
 export const setupGpuPipelines = ({
     device,
     format,
     nParticles,
+    gridResolution,
+    uniformsManager,
 }: {
     device: GPUDevice,
     format: GPUTextureFormat,
     nParticles: number,
+    gridResolution: number,
+    uniformsManager: GpuSnowUniformsManager,
 }) => {
     const particleDataBuffer1 = device.createBuffer({
         label: "particle data ping-pong buffer 1",
-        size: nParticles * 32,
+        size: nParticles * 48,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
     });
     const particleDataBuffer2 = device.createBuffer({
         label: "particle data ping-pong buffer 2",
-        size: nParticles * 32,
+        size: nParticles * 48,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
     });
-    const particleDataArray = new Float32Array(nParticles * 8);
+    const particleDataArray = new Float32Array(nParticles * 12);
     for (let i = 0; i < nParticles; i++) {
-        particleDataArray[i * 8] = Math.random();
-        particleDataArray[i * 8 + 1] = Math.random();
-        particleDataArray[i * 8 + 2] = Math.random();
-        particleDataArray[i * 8 + 3] = 1;
+        particleDataArray[i * 12] = Math.random();
+        particleDataArray[i * 12 + 1] = Math.random();
+        particleDataArray[i * 12 + 2] = Math.random();
+        particleDataArray[i * 12 + 3] = 1;
     }
     device.queue.writeBuffer(particleDataBuffer1, 0, particleDataArray);
 
 
-    const uniformsBuffer = device.createBuffer({
-        label: "uniforms buffer",
-        size: 80,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    const gridDataBuffer1 = device.createBuffer({
+        label: "grid data ping-pong buffer 1",
+        size: (gridResolution**3) * 16,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
+    });
+    const gridDataBuffer2 = device.createBuffer({
+        label: "grid data ping-pong buffer 2",
+        size: (gridResolution**3) * 16,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
     });
 
-    const uniformsBindGroupLayout = device.createBindGroupLayout({
-        label: "uniforms bind group layout",
-        entries: [
-            {
-                binding: 0,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: "uniform",
-                },
-            },
-        ],
-    });
-    const uniformsBindGroup = device.createBindGroup({
-        label: "uniforms bind group",
-        layout: uniformsBindGroupLayout,
-        entries: [
-            {
-                binding: 0,
-                resource: {
-                    buffer: uniformsBuffer,
-                },
-            },
-        ],
-    });
+
     const renderPipelineLayout = device.createPipelineLayout({
         label: "render pipeline",
-        bindGroupLayouts: [uniformsBindGroupLayout],
+        bindGroupLayouts: [uniformsManager.bindGroupLayout],
     });
 
 
@@ -179,7 +166,7 @@ export const setupGpuPipelines = ({
     });
     const simulationStepPipelineLayout = device.createPipelineLayout({
         label: "simulation step pipeline layout",
-        bindGroupLayouts: [uniformsBindGroupLayout, simulationStepStorageBindGroupLayout],
+        bindGroupLayouts: [uniformsManager.bindGroupLayout, simulationStepStorageBindGroupLayout],
     });
 
     const simulationStepModule = device.createShaderModule({
@@ -201,8 +188,6 @@ export const setupGpuPipelines = ({
     return {
         particleDataBuffer1,
         particleDataBuffer2,
-        uniformsBuffer,
-        uniformsBindGroup,
         simulationStepStorageBindGroup1_2,
         simulationStepStorageBindGroup2_1,
         renderPipeline,

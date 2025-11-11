@@ -1,4 +1,5 @@
 import type { Camera } from "$lib/Camera.svelte";
+import { GpuSnowUniformsManager } from "./GpuSnowUniformsManager";
 import { setupGpuPipelines } from "./setupGpuPipelines";
 
 const MAX_SIMULATION_DRIFT_MS = 1_000;
@@ -12,6 +13,7 @@ export class GpuSnowPipelineRunner {
 
     private buffer1IsSource = true;
 
+    private readonly uniformsManager: GpuSnowUniformsManager;
     private readonly pipelineData: ReturnType<typeof setupGpuPipelines>;
 
     constructor({
@@ -19,6 +21,7 @@ export class GpuSnowPipelineRunner {
         format,
         context,
         nParticles,
+        gridResolution,
         simulationTimestepS,
         camera,
     }: {
@@ -26,6 +29,7 @@ export class GpuSnowPipelineRunner {
         format: GPUTextureFormat,
         context: GPUCanvasContext,
         nParticles: number,
+        gridResolution: number,
         simulationTimestepS: number,
         camera: Camera,
     }) {
@@ -36,7 +40,9 @@ export class GpuSnowPipelineRunner {
 
         this.camera = camera;
 
-        this.pipelineData = setupGpuPipelines({device, format, nParticles});
+        const uniformsManager = new GpuSnowUniformsManager({device});
+        this.uniformsManager = uniformsManager;
+        this.pipelineData = setupGpuPipelines({device, format, nParticles, gridResolution, uniformsManager});
     }
 
     async doSimulationStep() {
@@ -48,7 +54,7 @@ export class GpuSnowPipelineRunner {
             label: "simulation step compute pass",
         });
         computePassEncoder.setPipeline(this.pipelineData.simulationStepPipeline);
-        computePassEncoder.setBindGroup(0, this.pipelineData.uniformsBindGroup);
+        computePassEncoder.setBindGroup(0, this.uniformsManager.bindGroup);
         computePassEncoder.setBindGroup(1, this.simulationStepStorageBindGroup);
         computePassEncoder.dispatchWorkgroups(Math.ceil(this.nParticles / 256));
         computePassEncoder.end();
@@ -61,8 +67,8 @@ export class GpuSnowPipelineRunner {
     }
 
     async render() {
-        this.device.queue.writeBuffer(this.pipelineData.uniformsBuffer, 0, new Float32Array([this.simulationTimestepS]));
-        this.device.queue.writeBuffer(this.pipelineData.uniformsBuffer, 16, this.camera.viewInvProj.buffer);
+        this.uniformsManager.writeSimulationTimestepS(this.simulationTimestepS);
+        this.uniformsManager.writeViewProjInvMat(this.camera.viewInvProj);
         
         const commandEncoder = this.device.createCommandEncoder({
             label: "render command encoder",
@@ -85,7 +91,7 @@ export class GpuSnowPipelineRunner {
                 },
             ],
         });
-        renderPassEncoder.setBindGroup(0, this.pipelineData.uniformsBindGroup);
+        renderPassEncoder.setBindGroup(0, this.uniformsManager.bindGroup);
         renderPassEncoder.setVertexBuffer(0, this.particleDataBuffer);
         renderPassEncoder.setPipeline(this.pipelineData.renderPipeline);
         renderPassEncoder.draw(this.nParticles);
