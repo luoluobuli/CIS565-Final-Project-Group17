@@ -16,18 +16,21 @@ const {
     onDrag: (data: {
         movement: Point,
         displacement: Point,
+        button: number,
+        pointerEvent: PointerEvent,
     }) => void,
 } = $props();
 
 let dragStartPos = $state.raw<Point | null>(null);
 const dragging = $derived(dragStartPos !== null);
-
+let button = $state(0);
 
 const handlePointerDown = (event: PointerEvent) => {
     dragStartPos = {
         x: event.pageX,
         y: event.pageY,
     };
+    button = event.button;
 };
 const handlePointerMove = (event: PointerEvent) => {
     if (dragStartPos === null) return;
@@ -41,6 +44,8 @@ const handlePointerMove = (event: PointerEvent) => {
             x: event.pageX - dragStartPos.x,
             y: event.pageY - dragStartPos.y,
         },
+        pointerEvent: event,
+        button, 
     });
 };
 const handlePointerUp = () => {

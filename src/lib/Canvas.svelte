@@ -54,8 +54,18 @@ onDestroy(() => {
 
 <svelte:window onresize={() => updateCanvasSize()} />
 
-<Draggable onDrag={async ({movement}) => {
-    orbit.move(movement);
+<Draggable onDrag={async ({movement, button, pointerEvent}) => {
+    switch (button) {
+        case 0:
+            orbit.turn(movement);
+            break;
+
+        case 1:
+            orbit.pan(movement);
+            break;
+    }
+
+    pointerEvent.preventDefault();
     // await rerender();
 }}>
     {#snippet dragTarget({onpointerdown})}

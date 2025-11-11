@@ -1,15 +1,16 @@
-import { mat4, vec3, type Mat4 } from "wgpu-matrix";
+import { mat3, mat4, vec3, type Mat4 } from "wgpu-matrix";
 import type { CameraControlScheme } from "./Camera.svelte";
-import type { Point } from "./Draggable.svelte";
-import { mod, PI_2, REV } from "./util";
+import { mod, PI, PI_2, REV } from "./util";
+
+type Point = { x: number; y: number };
 
 
 const ORBIT_CONTROL_SCALE = 0.005;
 
 export class CameraOrbit implements CameraControlScheme {
-    radius = $state(2);
-    lat = $state(0);
-    long = $state(0);
+    radius = $state(4);
+    lat = $state(PI / 6);
+    long = $state(11 * PI / 8);
     
     offset = $state(vec3.zero());
 
@@ -30,7 +31,17 @@ export class CameraOrbit implements CameraControlScheme {
         return this.view;
     }
 
-    move(movement: Point) {
+    pan(movement: Point) {
+        this.offset = vec3.add(
+            this.offset,
+            vec3.transformMat3(
+                vec3.fromValues(-movement.x * ORBIT_CONTROL_SCALE, movement.y * ORBIT_CONTROL_SCALE, 0),
+                mat3.fromMat4(this.orientation),
+            ),
+        );
+    }
+
+    turn(movement: Point) {
         this.lat = mod(this.lat + movement.y * ORBIT_CONTROL_SCALE, REV);
 
         if (PI_2 < this.lat && this.lat < 3 * PI_2) {

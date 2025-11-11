@@ -1,4 +1,3 @@
-import type { GpuUniformsBufferManager } from "./GpuUniformsBufferManager";
 
 
 export class GpuMpmBufferManager {
@@ -29,9 +28,9 @@ export class GpuMpmBufferManager {
         });
         const particleDataArray = new Float32Array(nParticles * 12);
         for (let i = 0; i < nParticles; i++) {
-            particleDataArray[i * 12] = Math.random();
-            particleDataArray[i * 12 + 1] = Math.random();
-            particleDataArray[i * 12 + 2] = Math.random();
+            particleDataArray[i * 12] = Math.random() * 2;
+            particleDataArray[i * 12 + 1] = Math.random() * 2;
+            particleDataArray[i * 12 + 2] = Math.random() * 2;
             particleDataArray[i * 12 + 3] = 1;
         }
         device.queue.writeBuffer(particleDataBuffer1, 0, particleDataArray);

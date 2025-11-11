@@ -16,5 +16,10 @@ fn doSimulationStep(
     particle.vel += vec3f(0, 0, -9.81 * uniforms.simulationTimestep);
     particle.pos += particle.vel * uniforms.simulationTimestep;
 
+    if (particle.pos.z < 0.0) {
+        particle.pos.z = 0.0;
+        particle.vel.z *= -0.5;
+    }
+
     particleDataOut[threadIndex] = particle;
 }
