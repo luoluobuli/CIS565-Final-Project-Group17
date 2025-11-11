@@ -1,4 +1,6 @@
 import type { Camera } from "$lib/Camera.svelte";
+import { GpuPointRenderPipelineManager } from "./GpuRenderPipelineManager";
+import { GpuSimulationStepPipelineManager } from "./GpuSimulationStepPipelineManager";
 import { GpuSnowUniformsManager } from "./GpuSnowUniformsManager";
 import { setupGpuPipelines } from "./setupGpuPipelines";
 
@@ -14,6 +16,8 @@ export class GpuSnowPipelineRunner {
     private buffer1IsSource = true;
 
     private readonly uniformsManager: GpuSnowUniformsManager;
+    private readonly simulationStepPipelineManager: GpuSimulationStepPipelineManager;
+    private readonly pointsRenderPipelineManager: GpuPointRenderPipelineManager;
     private readonly pipelineData: ReturnType<typeof setupGpuPipelines>;
 
     constructor({
@@ -42,24 +46,31 @@ export class GpuSnowPipelineRunner {
 
         const uniformsManager = new GpuSnowUniformsManager({device});
         this.uniformsManager = uniformsManager;
+
         this.pipelineData = setupGpuPipelines({device, format, nParticles, gridResolution, uniformsManager});
+
+        const simulationStepPipelineManager = new GpuSimulationStepPipelineManager({
+            device,
+            particleDataBuffer1: this.pipelineData.particleDataBuffer1,
+            particleDataBuffer2: this.pipelineData.particleDataBuffer2,
+            uniformsManager,
+        });
+        this.simulationStepPipelineManager = simulationStepPipelineManager;
+
+        const pointsRenderPipelineManager = new GpuPointRenderPipelineManager({device, format, uniformsManager});
+        this.pointsRenderPipelineManager = pointsRenderPipelineManager;
+
     }
 
     async doSimulationStep() {
         const commandEncoder = this.device.createCommandEncoder({
             label: "simulation step command encoder",
         });
-
-        const computePassEncoder = commandEncoder.beginComputePass({
-            label: "simulation step compute pass",
+        this.simulationStepPipelineManager.addComputePass({
+            commandEncoder,
+            nParticles: this.nParticles,
+            buffer1IsSource: this.buffer1IsSource,
         });
-        computePassEncoder.setPipeline(this.pipelineData.simulationStepPipeline);
-        computePassEncoder.setBindGroup(0, this.uniformsManager.bindGroup);
-        computePassEncoder.setBindGroup(1, this.simulationStepStorageBindGroup);
-        computePassEncoder.dispatchWorkgroups(Math.ceil(this.nParticles / 256));
-        computePassEncoder.end();
-
-
         this.device.queue.submit([commandEncoder.finish()]);
         await this.device.queue.onSubmittedWorkDone();
 
@@ -73,31 +84,12 @@ export class GpuSnowPipelineRunner {
         const commandEncoder = this.device.createCommandEncoder({
             label: "render command encoder",
         });
-
-        const renderPassEncoder = commandEncoder.beginRenderPass({
-            label: "render pass",
-            colorAttachments: [
-                {
-                    clearValue: {
-                        r: 0,
-                        g: 0,
-                        b: 0,
-                        a: 1,
-                    },
-
-                    loadOp: "clear",
-                    storeOp: "store",
-                    view: this.context.getCurrentTexture().createView(),
-                },
-            ],
+        this.pointsRenderPipelineManager.addRenderPass({
+            commandEncoder,
+            context: this.context,
+            particleDataBuffer: this.particleDataBuffer,
+            nParticles: this.nParticles,
         });
-        renderPassEncoder.setBindGroup(0, this.uniformsManager.bindGroup);
-        renderPassEncoder.setVertexBuffer(0, this.particleDataBuffer);
-        renderPassEncoder.setPipeline(this.pipelineData.renderPipeline);
-        renderPassEncoder.draw(this.nParticles);
-        renderPassEncoder.end();
-
-
         this.device.queue.submit([commandEncoder.finish()]);
         await this.device.queue.onSubmittedWorkDone();
     }
@@ -143,8 +135,8 @@ export class GpuSnowPipelineRunner {
 
     private get simulationStepStorageBindGroup() {
         return this.buffer1IsSource
-            ? this.pipelineData.simulationStepStorageBindGroup1_2
-            : this.pipelineData.simulationStepStorageBindGroup2_1;
+            ? this.simulationStepPipelineManager.storageBindGroup1_2
+            : this.simulationStepPipelineManager.storageBindGroup2_1;
     }
 
     private get particleDataBuffer() {

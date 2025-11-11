@@ -6,10 +6,8 @@ import type { GpuSnowUniformsManager } from "./GpuSnowUniformsManager";
 
 export const setupGpuPipelines = ({
     device,
-    format,
     nParticles,
     gridResolution,
-    uniformsManager,
 }: {
     device: GPUDevice,
     format: GPUTextureFormat,
@@ -49,148 +47,10 @@ export const setupGpuPipelines = ({
     });
 
 
-    const renderPipelineLayout = device.createPipelineLayout({
-        label: "render pipeline",
-        bindGroupLayouts: [uniformsManager.bindGroupLayout],
-    });
-
-
-    const vertexModule = device.createShaderModule({
-        label: "vertex module",
-        code: commonModuleSrc + vertexModuleSrc,
-    });
-    const fragmentModule = device.createShaderModule({
-        label: "fragment module",
-        code: commonModuleSrc + fragmentModuleSrc,
-    });
-    
-    const renderPipeline = device.createRenderPipeline({
-        label: "render pipeline",
-
-        layout: renderPipelineLayout,
-
-        vertex: {
-            module: vertexModule,
-            entryPoint: "vert",
-            buffers: [
-                {
-                    attributes: [
-                        {
-                            shaderLocation: 0,
-                            offset: 0,
-                            format: "float32x4",
-                        },
-                    ],
-                    arrayStride: 32,
-                    stepMode: "vertex",
-                },
-            ],
-        },
-
-        fragment: {
-            module: fragmentModule,
-            entryPoint: "frag",
-            targets: [
-                {
-                    format,
-                },
-            ],
-        },
-
-        primitive: {
-            topology: "point-list",
-        },
-    });
-
-
-    const simulationStepStorageBindGroupLayout = device.createBindGroupLayout({
-        label: "simulation step storage bind group layout",
-        
-        entries: [
-            {
-                binding: 0,
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: "read-only-storage",
-                },
-            },
-
-            {
-                binding: 1,
-                visibility: GPUShaderStage.COMPUTE,
-                buffer: {
-                    type: "storage",
-                },
-            },
-        ],
-    });
-    const simulationStepStorageBindGroup1_2 = device.createBindGroup({
-        label: "simulation step storage bind group, 1 -> 2",
-
-        layout: simulationStepStorageBindGroupLayout,
-        entries: [
-            {
-                binding: 0,
-                resource: {
-                    buffer: particleDataBuffer1,
-                },
-            },
-
-            {
-                binding: 1,
-                resource: {
-                    buffer: particleDataBuffer2,
-                },
-            },
-        ],
-    });
-    const simulationStepStorageBindGroup2_1 = device.createBindGroup({
-        label: "simulation step storage bind group, 2 -> 1",
-
-        layout: simulationStepStorageBindGroupLayout,
-        entries: [
-            {
-                binding: 0,
-                resource: {
-                    buffer: particleDataBuffer2,
-                },
-            },
-
-            {
-                binding: 1,
-                resource: {
-                    buffer: particleDataBuffer1,
-                },
-            },
-        ],
-    });
-    const simulationStepPipelineLayout = device.createPipelineLayout({
-        label: "simulation step pipeline layout",
-        bindGroupLayouts: [uniformsManager.bindGroupLayout, simulationStepStorageBindGroupLayout],
-    });
-
-    const simulationStepModule = device.createShaderModule({
-        label: "simulation step module",
-        code: commonModuleSrc + simulationStepModuleSrc,
-    });
-    
-    const simulationStepPipeline = device.createComputePipeline({
-        label: "simulation step pipeline",
-        layout: simulationStepPipelineLayout,
-
-        compute: {
-            module: simulationStepModule,
-            entryPoint: "doSimulationStep",
-        },
-    });
 
 
     return {
         particleDataBuffer1,
         particleDataBuffer2,
-        simulationStepStorageBindGroup1_2,
-        simulationStepStorageBindGroup2_1,
-        renderPipeline,
-        simulationStepPipeline,
     };
 };
