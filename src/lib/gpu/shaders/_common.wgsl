@@ -8,7 +8,9 @@ struct Uniforms {
     // 0
 
     simulationTimestep: f32, // 4
-    // 16
+    gridResolution: u32, // 8
+    cellSize: f32, // 12
+    invCellSize: f32, // 16
     viewInvProjMat: mat4x4f, // 80
 }
 
