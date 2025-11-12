@@ -5,7 +5,8 @@ import { Camera } from "./Camera.svelte";
 import { CameraOrbit } from "./CameraOrbit.svelte";
 import Draggable, {type Point} from "./Draggable.svelte";
 import { GpuSnowPipelineRunner } from "./gpu/GpuSnowPipelineRunner";
-import { loadGltfScene, samplePointsInMeshVolume } from "./loadScene";
+import { loadGltfScene } from "./loadScene";
+    import { samplePointsInMeshVolume } from "./samplePointsInMesh";
 
 let {
     onStatusChange,
