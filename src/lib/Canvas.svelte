@@ -43,7 +43,7 @@ onMount(async () => {
     const {device, context, format} = response;
     
     onStatusChange("loading geometry...");
-    const {vertices} = await loadGltfScene("/torusknot.glb");
+    const {vertices} = await loadGltfScene("/monkey.glb");
     
     const initialPositions = samplePointsInMeshVolume(vertices, nParticles);
     
