@@ -5,7 +5,7 @@ import { Camera } from "./Camera.svelte";
 import { CameraOrbit } from "./CameraOrbit.svelte";
 import Draggable, {type Point} from "./Draggable.svelte";
 import { GpuSnowPipelineRunner } from "./gpu/GpuSnowPipelineRunner";
-import { loadGltfScene, samplePointsInMesh } from "./loadScene";
+import { loadGltfScene, samplePointsInMeshVolume } from "./loadScene";
 
 let {
     onStatusChange,
@@ -41,13 +41,10 @@ onMount(async () => {
     if (response === null) return;
     const {device, context, format} = response;
     
-    // Load the torusknot geometry
     onStatusChange("loading geometry...");
     const {vertices} = await loadGltfScene("/torusknot.glb");
     
-    // Sample points inside the mesh
-    onStatusChange("sampling particle positions...");
-    const initialPositions = samplePointsInMesh(vertices, nParticles);
+    const initialPositions = samplePointsInMeshVolume(vertices, nParticles);
     
     const runner = new GpuSnowPipelineRunner({device, format, context, nParticles, gridResolution, simulationTimestepS, camera, initialPositions});
 
