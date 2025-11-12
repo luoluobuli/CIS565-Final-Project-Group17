@@ -107,6 +107,7 @@ export class GpuSnowPipelineRunner {
 
     loop() {
         let handle = 0;
+        let canceled = false;
 
         const simulationTimestepMs = this.simulationTimestepS * 1_000;
 
@@ -128,6 +129,7 @@ export class GpuSnowPipelineRunner {
 
             await this.render();
 
+            if (canceled) return;
             handle = requestAnimationFrame(loop);
         };
 
@@ -135,6 +137,7 @@ export class GpuSnowPipelineRunner {
 
         return () => {
             cancelAnimationFrame(handle);
+            canceled = true;
         };
     }
 }
