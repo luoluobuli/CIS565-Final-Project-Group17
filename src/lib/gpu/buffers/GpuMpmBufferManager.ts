@@ -11,10 +11,12 @@ export class GpuMpmBufferManager {
         device,
         nParticles,
         gridResolution,
+        initialPositions = null,
     }: {
         device: GPUDevice,
         nParticles: number,
         gridResolution: number,
+        initialPositions?: Float32Array | null,
     }) {
         const particleDataBuffer1 = device.createBuffer({
             label: "particle data ping-pong buffer 1",
@@ -27,11 +29,21 @@ export class GpuMpmBufferManager {
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
         });
         const particleDataArray = new Float32Array(nParticles * 12);
-        for (let i = 0; i < nParticles; i++) {
-            particleDataArray[i * 12] = Math.random() * 2;
-            particleDataArray[i * 12 + 1] = Math.random() * 2;
-            particleDataArray[i * 12 + 2] = Math.random() * 2;
-            particleDataArray[i * 12 + 3] = 1;
+        
+        if (initialPositions !== null && initialPositions.length >= nParticles * 3) {
+            for (let i = 0; i < nParticles; i++) {
+                particleDataArray[i * 12] = initialPositions[i * 3];
+                particleDataArray[i * 12 + 1] = initialPositions[i * 3 + 1];
+                particleDataArray[i * 12 + 2] = initialPositions[i * 3 + 2];
+                particleDataArray[i * 12 + 3] = 1;
+            }
+        } else {
+            for (let i = 0; i < nParticles; i++) {
+                particleDataArray[i * 12] = Math.random() * 2;
+                particleDataArray[i * 12 + 1] = Math.random() * 2;
+                particleDataArray[i * 12 + 2] = Math.random() * 2;
+                particleDataArray[i * 12 + 3] = 1;
+            }
         }
         device.queue.writeBuffer(particleDataBuffer1, 0, particleDataArray);
 

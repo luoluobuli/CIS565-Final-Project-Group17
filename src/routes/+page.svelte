@@ -3,8 +3,6 @@ import Canvas from "$lib/Canvas.svelte";
 
 let status = $state("");
 let err = $state<string | null>(null);
-
-$inspect(status);
 </script>
 
 <main>
@@ -28,7 +26,7 @@ main {
     overlays-panel {
         width: 20%;
         padding: 0.5rem;
-        
+
         color: oklch(1 0 0);
     }
 

@@ -28,6 +28,7 @@ export class GpuSnowPipelineRunner {
         gridResolution,
         simulationTimestepS,
         camera,
+        initialPositions,
     }: {
         device: GPUDevice,
         format: GPUTextureFormat,
@@ -36,6 +37,7 @@ export class GpuSnowPipelineRunner {
         gridResolution: number,
         simulationTimestepS: number,
         camera: Camera,
+        initialPositions?: Float32Array,
     }) {
         this.device = device;
         this.context = context;
@@ -47,7 +49,7 @@ export class GpuSnowPipelineRunner {
         const uniformsManager = new GpuUniformsBufferManager({device});
         this.uniformsManager = uniformsManager;
 
-        const mpmManager = new GpuMpmBufferManager({device, nParticles, gridResolution});
+        const mpmManager = new GpuMpmBufferManager({device, nParticles, gridResolution, initialPositions});
         this.mpmManager = mpmManager;
 
         const simulationStepPipelineManager = new GpuSimulationStepPipelineManager({

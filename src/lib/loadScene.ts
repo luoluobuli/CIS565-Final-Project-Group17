@@ -11,8 +11,8 @@
 //     }
 // };
 
-import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
-import { Matrix4, MeshPhysicalMaterial, Object3D, Scene, Vector3 } from "three";
+import {GLTFLoader, type GLTF} from "three/addons/loaders/GLTFLoader.js";
+import { Matrix4, Mesh, MeshPhysicalMaterial, Object3D, Vector3 } from "three";
 
 
 const traverseChildren = (scene: Object3D, fn: (child: Object3D) => void) => {
@@ -25,11 +25,47 @@ const traverseChildren = (scene: Object3D, fn: (child: Object3D) => void) => {
 
 const vec = (array: Float32Array, mat: Matrix4) => {
     const vec3 = new Vector3(array[0], array[1], array[2]).applyMatrix4(mat);
-    return [vec3.x, -vec3.y, vec3.z];
+    return [vec3.x, vec3.z, vec3.y];
+};
+
+const samplePointInTriangle = (v0: number[], v1: number[], v2: number[]): number[] => {
+    let u = Math.random();
+    let v = Math.random();
+    
+    if (u + v > 1) {
+        u = 1 - u;
+        v = 1 - v;
+    }
+    
+    const w = 1 - u - v;
+    
+    return [
+        w * v0[0] + u * v1[0] + v * v2[0],
+        w * v0[1] + u * v1[1] + v * v2[1],
+        w * v0[2] + u * v1[2] + v * v2[2],
+    ];
+};
+
+export const samplePointsOnMeshSurface = (vertices: number[][], nPoints: number): Float32Array => {
+    const points = new Float32Array(nPoints * 3);
+    
+    for (let i = 0; i < nPoints; i++) {
+        const triIndex = Math.floor(Math.random() * vertices.length / 3) * 3;
+        const v0 = vertices[triIndex];
+        const v1 = vertices[triIndex + 1];
+        const v2 = vertices[triIndex + 2];
+        
+        const point = samplePointInTriangle(v0, v1, v2);
+        points[i * 3] = point[0];
+        points[i * 3 + 1] = point[1];
+        points[i * 3 + 2] = point[2];
+    }
+    
+    return points;
 };
 
 export const loadGltfScene = async (url: string) => {
-    const gltf: {scene: Scene} = await new Promise((resolve, reject) => new GLTFLoader().load(url, resolve));
+    const gltf = await new Promise<GLTF>((resolve, _reject) => new GLTFLoader().load(url, resolve));
 
     let nTriBytes = 0;
     let nMaterialBytes = 0;
@@ -38,7 +74,7 @@ export const loadGltfScene = async (url: string) => {
     const materialMap = new Map<MeshPhysicalMaterial, number>();
 
     traverseChildren(gltf.scene, child => {
-        if (!Object.hasOwn(child, "geometry")) return;
+        if (!(child instanceof Mesh)) return;
         nTriBytes += child.geometry.index.array.length / 3 * 48;
         
         if (!materialMap.has(child.material)) {
@@ -56,7 +92,7 @@ export const loadGltfScene = async (url: string) => {
     let boundingBoxOffset = 0;
 
     traverseChildren(gltf.scene, child => {
-        if (!Object.hasOwn(child, "geometry")) return;
+        if (!(child instanceof Mesh)) return;
 
 
         const boxTriangleIndex = triOffset / 48;
@@ -102,7 +138,7 @@ export const loadGltfScene = async (url: string) => {
             material.color.r,
             material.color.g,
             material.color.b,
-            Object.hasOwn(material, "_transmission") ? 1 - material._transmission : 1,
+            Object.hasOwn(material, "transmission") ? 1 - material.transmission : 1,
 
             material.emissive.r * material.emissiveIntensity,
             material.emissive.g * material.emissiveIntensity,
@@ -116,9 +152,23 @@ export const loadGltfScene = async (url: string) => {
         ]);
     }
 
+    const vertices: number[][] = [];
+    traverseChildren(gltf.scene, child => {
+        if (!(child instanceof Mesh)) return;
+        
+        const pos = child.geometry.attributes.position.array;
+        const index = child.geometry.index.array;
+        
+        for (let i = 0; i < index.length; i++) {
+            const v = vec(pos.slice(3 * index[i], 3 * index[i] + 3), child.matrix);
+            vertices.push(v);
+        }
+    });
+
     return {
         boundingBoxes,
         triangles,
         materials,
+        vertices,
     };
 };

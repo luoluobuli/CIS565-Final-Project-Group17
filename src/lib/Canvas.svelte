@@ -5,6 +5,7 @@ import { Camera } from "./Camera.svelte";
 import { CameraOrbit } from "./CameraOrbit.svelte";
 import Draggable, {type Point} from "./Draggable.svelte";
 import { GpuSnowPipelineRunner } from "./gpu/GpuSnowPipelineRunner";
+import { loadGltfScene, samplePointsInMesh } from "./loadScene";
 
 let {
     onStatusChange,
@@ -20,7 +21,7 @@ let canvas: HTMLCanvasElement;
 let width = $state(300);
 let height = $state(150);
 
-let nParticles = $state(2_000);
+let nParticles = $state(5_000);
 let gridResolution = $state(8);
 let simulationTimestepS = $state(1 / 144);
 
@@ -39,7 +40,16 @@ onMount(async () => {
     const response = await requestGpuDeviceAndContext({onStatusChange, onErr, canvas});
     if (response === null) return;
     const {device, context, format} = response;
-    const runner = new GpuSnowPipelineRunner({device, format, context, nParticles, gridResolution, simulationTimestepS, camera});
+    
+    // Load the torusknot geometry
+    onStatusChange("loading geometry...");
+    const {vertices} = await loadGltfScene("/torusknot.glb");
+    
+    // Sample points inside the mesh
+    onStatusChange("sampling particle positions...");
+    const initialPositions = samplePointsInMesh(vertices, nParticles);
+    
+    const runner = new GpuSnowPipelineRunner({device, format, context, nParticles, gridResolution, simulationTimestepS, camera, initialPositions});
 
     updateCanvasSize();
 
