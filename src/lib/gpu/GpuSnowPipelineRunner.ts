@@ -10,6 +10,7 @@ export class GpuSnowPipelineRunner {
     private readonly device: GPUDevice;
     private readonly context: GPUCanvasContext;
     private readonly nParticles: number;
+    private readonly gridResolution: number;
     private readonly simulationTimestepS: number;
     private readonly camera: Camera;
 
@@ -40,6 +41,7 @@ export class GpuSnowPipelineRunner {
         this.device = device;
         this.context = context;
         this.nParticles = nParticles;
+        this.gridResolution = gridResolution;
         this.simulationTimestepS = simulationTimestepS;
 
         this.camera = camera;
@@ -71,8 +73,34 @@ export class GpuSnowPipelineRunner {
         for (let i = 0; i < nSteps; i++) {
             this.simulationStepPipelineManager.addComputePass({
                 commandEncoder,
-                nParticles: this.nParticles,
+                numThreads: this.nParticles,
                 buffer1IsSource: this.buffer1IsSource,
+                pipeline: this.simulationStepPipelineManager.computePipeline,
+                label: "simulation step compute pipeline",
+            });
+            
+            this.simulationStepPipelineManager.addComputePass({
+                commandEncoder,
+                numThreads: this.nParticles,
+                buffer1IsSource: this.buffer1IsSource,
+                pipeline: this.simulationStepPipelineManager.p2gComputePipeline,
+                label: "particle to grid compute pipeline",
+            });
+
+            this.simulationStepPipelineManager.addComputePass({
+                commandEncoder,
+                numThreads: this.gridResolution ** 3,
+                buffer1IsSource: this.buffer1IsSource,
+                pipeline: this.simulationStepPipelineManager.gridComputePipeline,
+                label: "grid update compute pipeline",
+            });
+
+            this.simulationStepPipelineManager.addComputePass({
+                commandEncoder,
+                numThreads: this.gridResolution ** 3,
+                buffer1IsSource: this.buffer1IsSource,
+                pipeline: this.simulationStepPipelineManager.g2pComputePipeline,
+                label: "grid to particle compute pipeline",
             });
         }
 
