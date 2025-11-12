@@ -50,8 +50,7 @@ export class GpuSnowPipelineRunner {
         this.uniformsManager = uniformsManager;
 
         const cellSize = 2 / (gridResolution - 1);
-        const invCellSize = 1 / cellSize;
-        this.uniformsManager.writeGridParams(gridResolution, cellSize, invCellSize);
+        this.uniformsManager.writeGridParams(gridResolution, cellSize);
 
         const mpmManager = new GpuMpmBufferManager({device, nParticles, gridResolution, initialPositions});
         this.mpmManager = mpmManager;

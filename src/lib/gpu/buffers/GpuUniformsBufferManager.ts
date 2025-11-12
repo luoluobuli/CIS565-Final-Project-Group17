@@ -55,9 +55,9 @@ export class GpuUniformsBufferManager {
         this.device.queue.writeBuffer(this.buffer, 0, new Float32Array([simulationTimestepS]));
     }
 
-    writeGridParams(gridResolution: number, cellSize: number, invCellSize: number) {
+    writeGridParams(gridResolution: number, cellSize: number) {
         this.device.queue.writeBuffer(this.buffer, 4, new Uint32Array([gridResolution]));
-        this.device.queue.writeBuffer(this.buffer, 8, new Float32Array([cellSize, invCellSize]));
+        this.device.queue.writeBuffer(this.buffer, 8, new Float32Array([cellSize, 1 / cellSize]));
     }
 
     writeViewProjInvMat(viewProjInvMat: Mat4) {
