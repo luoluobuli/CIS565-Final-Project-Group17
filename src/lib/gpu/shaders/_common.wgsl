@@ -9,7 +9,7 @@ struct Uniforms {
 
     simulationTimestep: f32, // 4
     gridResolution: i32, // 8
-    fpScale: f32;
+    fpScale: f32, // 12
     // 16
     viewInvProjMat: mat4x4f, // 80
 }
