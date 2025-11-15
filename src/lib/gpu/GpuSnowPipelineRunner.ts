@@ -5,11 +5,13 @@ import { GpuUniformsBufferManager } from "./buffers/GpuUniformsBufferManager";
 import { GpuMpmBufferManager } from "./buffers/GpuMpmBufferManager";
 
 const MAX_SIMULATION_DRIFT_MS = 1_000;
+const FP_SCALE = 1024.0;
 
 export class GpuSnowPipelineRunner {
     private readonly device: GPUDevice;
     private readonly context: GPUCanvasContext;
     private readonly nParticles: number;
+    private readonly gridResolution: number;
     private readonly simulationTimestepS: number;
     private readonly camera: Camera;
 
@@ -42,6 +44,7 @@ export class GpuSnowPipelineRunner {
         this.device = device;
         this.context = context;
         this.nParticles = nParticles;
+        this.gridResolution = gridResolution;
         this.simulationTimestepS = simulationTimestepS;
 
         this.camera = camera;
@@ -59,6 +62,8 @@ export class GpuSnowPipelineRunner {
             device,
             particleDataBuffer1: mpmManager.particleDataBuffer1,
             particleDataBuffer2: mpmManager.particleDataBuffer2,
+            gridDataBuffer1: mpmManager.gridDataBuffer1,
+            gridDataBuffer2: mpmManager.gridDataBuffer2,
             uniformsManager,
         });
         this.simulationStepPipelineManager = simulationStepPipelineManager;
@@ -72,14 +77,44 @@ export class GpuSnowPipelineRunner {
         const commandEncoder = this.device.createCommandEncoder({
             label: "simulation step command encoder",
         });
+
+        const computePassEncoder = commandEncoder.beginComputePass();
         
         for (let i = 0; i < nSteps; i++) {
-            this.simulationStepPipelineManager.addComputePass({
-                commandEncoder,
-                nParticles: this.nParticles,
+            // this.simulationStepPipelineManager.addComputePass({
+            //     commandEncoder,
+            //     numThreads: this.nParticles,
+            //     buffer1IsSource: this.buffer1IsSource,
+            //     pipeline: this.simulationStepPipelineManager.computePipeline,
+            //     label: "simulation step compute pipeline",
+            // });
+            
+            this.simulationStepPipelineManager.addDispatch({
+                computePassEncoder,
+                numThreads: this.nParticles,
                 buffer1IsSource: this.buffer1IsSource,
+                pipeline: this.simulationStepPipelineManager.p2gComputePipeline,
+                label: "particle to grid compute pipeline",
+            });
+
+            this.simulationStepPipelineManager.addDispatch({
+                computePassEncoder,
+                numThreads: this.gridResolution ** 3,
+                buffer1IsSource: this.buffer1IsSource,
+                pipeline: this.simulationStepPipelineManager.gridComputePipeline,
+                label: "grid update compute pipeline",
+            });
+
+            this.simulationStepPipelineManager.addDispatch({
+                computePassEncoder,
+                numThreads: this.nParticles,
+                buffer1IsSource: this.buffer1IsSource,
+                pipeline: this.simulationStepPipelineManager.g2pComputePipeline,
+                label: "grid to particle compute pipeline",
             });
         }
+
+        computePassEncoder.end();
 
         this.device.queue.submit([commandEncoder.finish()]);
         await this.device.queue.onSubmittedWorkDone();
@@ -88,7 +123,9 @@ export class GpuSnowPipelineRunner {
     }
 
     async render() {
-        this.uniformsManager.writeSimulationTimestepS(this.simulationTimestepS);
+        this.uniformsManager.writeFloat(this.simulationTimestepS);
+        this.uniformsManager.writeInteger(this.gridResolution);
+        this.uniformsManager.writeFloat(FP_SCALE);
         this.uniformsManager.writeViewProjInvMat(this.camera.viewInvProj);
         
         const commandEncoder = this.device.createCommandEncoder({

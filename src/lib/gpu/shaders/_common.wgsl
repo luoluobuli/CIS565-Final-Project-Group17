@@ -8,9 +8,9 @@ struct Uniforms {
     // 0
 
     simulationTimestep: f32, // 4
-    gridResolution: u32, // 8
-    cellSize: f32, // 12
-    invCellSize: f32, // 16
+    gridResolution: i32, // 8
+    fpScale: f32, // 12
+    // 16
     viewInvProjMat: mat4x4f, // 80
 }
 
@@ -26,6 +26,10 @@ struct ParticleData {
 struct GridData {
     // 0
 
-    vel: vec3f, // 12
-    mass: f32, // 16
+    // vel: vec3f, // 12
+    // mass: f32, // 16
+    vx: atomic<u32>, // 4
+    vy: atomic<u32>, // 8
+    vz: atomic<u32>, // 12
+    mass: atomic<u32>, // 16
 }
