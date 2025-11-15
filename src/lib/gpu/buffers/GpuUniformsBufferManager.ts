@@ -14,7 +14,7 @@ export class GpuUniformsBufferManager {
     }) {
         const uniformsBuffer = device.createBuffer({
             label: "uniforms buffer",
-            size: 80,
+            size: 112,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
         });
 
@@ -59,11 +59,19 @@ export class GpuUniformsBufferManager {
         this.device.queue.writeBuffer(this.buffer, 4, new Int32Array([gridResolution]));
     }
 
-    writeFpScale(fpScale: number) {
-        this.device.queue.writeBuffer(this.buffer, 8, new Float32Array([fpScale]));
+    writeFixedPointScale(fixedPointScale: number) {
+        this.device.queue.writeBuffer(this.buffer, 8, new Float32Array([fixedPointScale]));
+    }
+
+    writeGridMinCoords(min: [number, number, number]) {
+        this.device.queue.writeBuffer(this.buffer, 16, new Int32Array(min));
+    }
+
+    writeGridMaxCoords(max: [number, number, number]) {
+        this.device.queue.writeBuffer(this.buffer, 32, new Int32Array(max));
     }
 
     writeViewProjInvMat(viewProjInvMat: Mat4) {
-        this.device.queue.writeBuffer(this.buffer, 16, viewProjInvMat.buffer);
+        this.device.queue.writeBuffer(this.buffer, 48, viewProjInvMat.buffer);
     }
 }

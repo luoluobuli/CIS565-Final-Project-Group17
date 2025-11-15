@@ -54,7 +54,9 @@ export class GpuSnowPipelineRunner {
 
         uniformsManager.writeSimulationTimestepS(simulationTimestepS);
         uniformsManager.writeGridResolution(gridResolution);
-        uniformsManager.writeFpScale(FP_SCALE);
+        uniformsManager.writeFixedPointScale(FP_SCALE);
+        uniformsManager.writeGridMinCoords([-2, -2, 0]);
+        uniformsManager.writeGridMaxCoords([2, 2, 4]);
 
         const mpmManager = new GpuMpmBufferManager({device, nParticles, gridResolution, initialPositions});
         this.mpmManager = mpmManager;

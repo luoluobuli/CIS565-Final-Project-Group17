@@ -34,15 +34,15 @@ fn doGridToParticle(
             for (var k = 0u; k < 3u; k++) {
                 let weight = w[i].x * w[j].y * w[k].z;
                 let node = grid_base + vec3i(i32(i), i32(j), i32(k));
-                if (node.x >= gridResolution || node.y >= gridResolution || node.z >= gridResolution) {
+                if (any(vec3f(node) < uniforms.gridMinCoords) || any(vec3f(node) >= uniforms.gridMaxCoords)) {
                     continue;
                 }
                 let idx = node.x + node.y * gridResolution + node.z * gridResolution * gridResolution;
 
-                let gx = bitcast<f32>(atomicLoad(&gridDataIn[idx].vx)) / uniforms.fpScale;
-                let gy = bitcast<f32>(atomicLoad(&gridDataIn[idx].vy)) / uniforms.fpScale;
-                let gz = bitcast<f32>(atomicLoad(&gridDataIn[idx].vz)) / uniforms.fpScale;
-                let grid_mass = bitcast<f32>(atomicLoad(&gridDataIn[idx].mass)) / uniforms.fpScale;
+                let gx = bitcast<f32>(atomicLoad(&gridDataIn[idx].vx)) / uniforms.fixedPointScale;
+                let gy = bitcast<f32>(atomicLoad(&gridDataIn[idx].vy)) / uniforms.fixedPointScale;
+                let gz = bitcast<f32>(atomicLoad(&gridDataIn[idx].vz)) / uniforms.fixedPointScale;
+                let grid_mass = bitcast<f32>(atomicLoad(&gridDataIn[idx].mass)) / uniforms.fixedPointScale;
 
                 if (grid_mass <= 0.0) { continue; }
                 let grid_vel = vec3f(gx, gy, gz) / grid_mass;

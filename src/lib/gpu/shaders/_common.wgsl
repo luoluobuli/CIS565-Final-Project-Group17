@@ -9,9 +9,13 @@ struct Uniforms {
 
     simulationTimestep: f32, // 4
     gridResolution: i32, // 8
-    fpScale: f32, // 12
+    fixedPointScale: f32, // 12
     // 16
-    viewInvProjMat: mat4x4f, // 80
+    gridMinCoords: vec3f, // 28
+    // 32
+    gridMaxCoords: vec3f, // 44
+    // 48
+    viewInvProjMat: mat4x4f, // 112
 }
 
 struct ParticleData {

@@ -35,10 +35,10 @@ fn doParticleToGrid(
                 let node = grid_base + vec3i(i32(i), i32(j), i32(k));
                 let nodeIndex = node.x + node.y * gridResolution + node.z * gridResolution * gridResolution;
 
-                let contribVx = weight * particle.vel.x * uniforms.fpScale;
-                let contribVy = weight * particle.vel.y * uniforms.fpScale;
-                let contribVz = weight * particle.vel.z * uniforms.fpScale;
-                let contribMass = weight * particle.mass * uniforms.fpScale;
+                let contribVx = weight * particle.vel.x * uniforms.fixedPointScale;
+                let contribVy = weight * particle.vel.y * uniforms.fixedPointScale;
+                let contribVz = weight * particle.vel.z * uniforms.fixedPointScale;
+                let contribMass = weight * particle.mass * uniforms.fixedPointScale;
 
                 atomicAdd(&gridDataOut[nodeIndex].vx, bitcast<u32>(contribVx));
                 atomicAdd(&gridDataOut[nodeIndex].vy, bitcast<u32>(contribVy));
