@@ -9,7 +9,6 @@ export class GpuSimulationStepPipelineManager {
     readonly storageBindGroupLayout: GPUBindGroupLayout;
     readonly storageBindGroup: GPUBindGroup;
 
-    //readonly computePipeline: GPUComputePipeline;
     readonly p2gComputePipeline: GPUComputePipeline;
     readonly gridComputePipeline: GPUComputePipeline;
     readonly g2pComputePipeline: GPUComputePipeline;
@@ -18,17 +17,13 @@ export class GpuSimulationStepPipelineManager {
 
     constructor({
         device,
-        particleDataBuffer1,
-        particleDataBuffer2,
-        gridDataBuffer1,
-        gridDataBuffer2,
+        particleDataBuffer: particleDataBuffer,
+        gridDataBuffer: gridDataBuffer,
         uniformsManager,
     }: {
         device: GPUDevice,
-        particleDataBuffer1: GPUBuffer,
-        particleDataBuffer2: GPUBuffer,
-        gridDataBuffer1: GPUBuffer,
-        gridDataBuffer2: GPUBuffer,
+        particleDataBuffer: GPUBuffer,
+        gridDataBuffer: GPUBuffer,
         uniformsManager: GpuUniformsBufferManager,
     }) {
         const simulationStepStorageBindGroupLayout = device.createBindGroupLayout({
@@ -61,14 +56,14 @@ export class GpuSimulationStepPipelineManager {
                 {
                     binding: 0,
                     resource: {
-                        buffer: particleDataBuffer1,
+                        buffer: particleDataBuffer,
                     },
                 },
 
                 {
                     binding: 1,
                     resource: {
-                        buffer: gridDataBuffer1,
+                        buffer: gridDataBuffer,
                     },
                 },
             ],
@@ -79,11 +74,7 @@ export class GpuSimulationStepPipelineManager {
             bindGroupLayouts: [uniformsManager.bindGroupLayout, simulationStepStorageBindGroupLayout],
         });
 
-        // Load shader modules
-        // const simulationStepModule = device.createShaderModule({
-        //     label: "simulation step module",
-        //     code: commonModuleSrc + simulationStepModuleSrc,
-        // });
+
         const p2gModule = device.createShaderModule({
             code: commonModuleSrc + p2gModuleSrc,
         });
@@ -94,16 +85,6 @@ export class GpuSimulationStepPipelineManager {
             code: commonModuleSrc + g2pModuleSrc,
         });
         
-        // Create compute pipelines
-        // const simulationStepPipeline = device.createComputePipeline({
-        //     label: "simulation step pipeline",
-        //     layout: simulationStepPipelineLayout,
-
-        //     compute: {
-        //         module: simulationStepModule,
-        //         entryPoint: "doSimulationStep",
-        //     },
-        // });
 
         this.p2gComputePipeline = device.createComputePipeline({
             label: "particle to grid compute pipeline",
@@ -138,9 +119,6 @@ export class GpuSimulationStepPipelineManager {
 
         this.storageBindGroupLayout = simulationStepStorageBindGroupLayout;
         this.storageBindGroup = simulationStepStorageBindGroup;
-        // this.storageBindGroup2_1 = simulationStepStorageBindGroup2_1;
-
-        // this.computePipeline = simulationStepPipeline;
 
         this.uniformsManager = uniformsManager;
     }
@@ -161,10 +139,4 @@ export class GpuSimulationStepPipelineManager {
         computePassEncoder.setBindGroup(1, this.storageBindGroup);
         computePassEncoder.dispatchWorkgroups(Math.ceil(numThreads / 256));
     }
-
-    // storageBindGroupCurrent(buffer1IsSource: boolean) {
-    //     return buffer1IsSource
-    //         ? this.storageBindGroup1_2
-    //         : this.storageBindGroup2_1;
-    // }
 }

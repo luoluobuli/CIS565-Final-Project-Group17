@@ -51,7 +51,7 @@ export class GpuUniformsBufferManager {
         this.bindGroup = uniformsBindGroup;
     }
 
-    writeSimulationTimestep(timestep: number) {
+    writeSimulationTimestepS(timestep: number) {
         this.device.queue.writeBuffer(this.buffer, 0, new Float32Array([timestep]));
     }
 

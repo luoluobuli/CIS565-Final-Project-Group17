@@ -1,8 +1,7 @@
 
 
 export class GpuMpmBufferManager {
-    readonly particleDataBuffer1: GPUBuffer;
-    readonly particleDataBuffer2: GPUBuffer;
+    readonly particleDataBuffer: GPUBuffer;
     readonly gridDataBuffer: GPUBuffer;
 
 
@@ -17,13 +16,8 @@ export class GpuMpmBufferManager {
         gridResolution: number,
         initialPositions?: Float32Array | null,
     }) {
-        const particleDataBuffer1 = device.createBuffer({
+        const particleDataBuffer = device.createBuffer({
             label: "particle data ping-pong buffer 1",
-            size: nParticles * 48,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
-        });
-        const particleDataBuffer2 = device.createBuffer({
-            label: "particle data ping-pong buffer 2",
             size: nParticles * 48,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM,
         });
@@ -62,7 +56,7 @@ export class GpuMpmBufferManager {
                 );
             }
         }
-        device.queue.writeBuffer(particleDataBuffer1, 0, particleDataArray);
+        device.queue.writeBuffer(particleDataBuffer, 0, particleDataArray);
 
 
         const gridDataBuffer = device.createBuffer({
@@ -72,15 +66,8 @@ export class GpuMpmBufferManager {
         });
 
 
-        this.particleDataBuffer1 = particleDataBuffer1;
-        this.particleDataBuffer2 = particleDataBuffer2;
+        this.particleDataBuffer = particleDataBuffer;
 
         this.gridDataBuffer = gridDataBuffer;
-    }
-
-    particleDataBufferCurrent(buffer1IsSource: boolean) {
-        return buffer1IsSource
-            ? this.particleDataBuffer1
-            : this.particleDataBuffer2;
     }
 }

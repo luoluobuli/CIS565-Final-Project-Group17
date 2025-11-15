@@ -52,7 +52,7 @@ export class GpuSnowPipelineRunner {
         const uniformsManager = new GpuUniformsBufferManager({device});
         this.uniformsManager = uniformsManager;
 
-        uniformsManager.writeSimulationTimestep(simulationTimestepS);
+        uniformsManager.writeSimulationTimestepS(simulationTimestepS);
         uniformsManager.writeGridResolution(gridResolution);
         uniformsManager.writeFpScale(FP_SCALE);
 
@@ -61,10 +61,8 @@ export class GpuSnowPipelineRunner {
 
         const simulationStepPipelineManager = new GpuSimulationStepPipelineManager({
             device,
-            particleDataBuffer1: mpmManager.particleDataBuffer1,
-            particleDataBuffer2: mpmManager.particleDataBuffer2,
-            gridDataBuffer1: mpmManager.gridDataBuffer,
-            gridDataBuffer2: mpmManager.gridDataBuffer,
+            particleDataBuffer: mpmManager.particleDataBuffer,
+            gridDataBuffer: mpmManager.gridDataBuffer,
             uniformsManager,
         });
         this.simulationStepPipelineManager = simulationStepPipelineManager;
@@ -132,7 +130,7 @@ export class GpuSnowPipelineRunner {
         this.pointsRenderPipelineManager.addRenderPass({
             commandEncoder,
             context: this.context,
-            particleDataBuffer: this.mpmManager.particleDataBufferCurrent(this.buffer1IsSource),
+            particleDataBuffer: this.mpmManager.particleDataBuffer,
             nParticles: this.nParticles,
         });
         this.device.queue.submit([commandEncoder.finish()]);
