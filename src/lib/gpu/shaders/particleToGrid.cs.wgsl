@@ -11,9 +11,9 @@ fn doParticleToGrid(
     let threadIndex = gid.x;
     if threadIndex >= arrayLength(&particleDataIn) { return; }
 
-    gridResolution = uniforms.gridResolution;
-    dx = 1 / gridResolution;
-    inv_dx = f32(gridResolution);
+    let gridResolution = uniforms.gridResolution;
+    let inv_dx = f32(gridResolution);
+    let dx = 1 / inv_dx;
 
     let particle = particleDataIn[threadIndex];
 
@@ -32,18 +32,18 @@ fn doParticleToGrid(
         for (var j = 0u; j < 3u; j++) {
             for (var k = 0u; k < 3u; k++) {
                 let weight = w[i].x * w[j].y * w[k].z;
-                let node = vec3u(grid_base) + vec3u(i, j, k);
+                let node = grid_base + vec3i(i32(i), i32(j), i32(k));
                 let nodeIndex = node.x + node.y * gridResolution + node.z * gridResolution * gridResolution;
 
-                let contribVx = i32(weight * p.vel.x * uniforms.fpScale);
-                let contribVy = i32(weight * p.vel.y * uniforms.fpScale);
-                let contribVz = i32(weight * p.vel.z * uniforms.fpScale);
-                let contribMass = i32(weight * p.mass * uniforms.fpScale);
+                let contribVx = weight * particle.vel.x * uniforms.fpScale;
+                let contribVy = weight * particle.vel.y * uniforms.fpScale;
+                let contribVz = weight * particle.vel.z * uniforms.fpScale;
+                let contribMass = weight * particle.mass * uniforms.fpScale;
 
-                atomicAdd(&grid[nodeIndex].vx, contribVx);
-                atomicAdd(&grid[nodeIndex].vy, contribVy);
-                atomicAdd(&grid[nodeIndex].vz, contribVz);
-                atomicAdd(&grid[nodeIndex].mass, contribMass);
+                atomicAdd(&gridDataOut[nodeIndex].vx, bitcast<u32>(contribVx));
+                atomicAdd(&gridDataOut[nodeIndex].vy, bitcast<u32>(contribVy));
+                atomicAdd(&gridDataOut[nodeIndex].vz, bitcast<u32>(contribVz));
+                atomicAdd(&gridDataOut[nodeIndex].mass, bitcast<u32>(contribMass));
             }
         }
     }

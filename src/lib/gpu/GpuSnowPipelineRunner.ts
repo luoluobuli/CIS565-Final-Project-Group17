@@ -72,6 +72,8 @@ export class GpuSnowPipelineRunner {
         const commandEncoder = this.device.createCommandEncoder({
             label: "simulation step command encoder",
         });
+
+        const computePassEncoder = commandEncoder.beginComputePass();
         
         for (let i = 0; i < nSteps; i++) {
             // this.simulationStepPipelineManager.addComputePass({
@@ -82,30 +84,32 @@ export class GpuSnowPipelineRunner {
             //     label: "simulation step compute pipeline",
             // });
             
-            this.simulationStepPipelineManager.addComputePass({
-                commandEncoder,
+            this.simulationStepPipelineManager.addDispatch({
+                computePassEncoder,
                 numThreads: this.nParticles,
                 buffer1IsSource: this.buffer1IsSource,
                 pipeline: this.simulationStepPipelineManager.p2gComputePipeline,
                 label: "particle to grid compute pipeline",
             });
 
-            this.simulationStepPipelineManager.addComputePass({
-                commandEncoder,
+            this.simulationStepPipelineManager.addDispatch({
+                computePassEncoder,
                 numThreads: this.gridResolution ** 3,
                 buffer1IsSource: this.buffer1IsSource,
                 pipeline: this.simulationStepPipelineManager.gridComputePipeline,
                 label: "grid update compute pipeline",
             });
 
-            this.simulationStepPipelineManager.addComputePass({
-                commandEncoder,
+            this.simulationStepPipelineManager.addDispatch({
+                computePassEncoder,
                 numThreads: this.nParticles,
                 buffer1IsSource: this.buffer1IsSource,
                 pipeline: this.simulationStepPipelineManager.g2pComputePipeline,
                 label: "grid to particle compute pipeline",
             });
         }
+
+        computePassEncoder.end();
 
         this.device.queue.submit([commandEncoder.finish()]);
         await this.device.queue.onSubmittedWorkDone();

@@ -145,28 +145,21 @@ export class GpuSimulationStepPipelineManager {
         this.uniformsManager = uniformsManager;
     }
 
-    addComputePass({
-        commandEncoder,
+    addDispatch({
+        computePassEncoder,
         numThreads,
-        buffer1IsSource,
         pipeline,
-        label,
     }: {
-        commandEncoder: GPUCommandEncoder,
+        computePassEncoder: GPUComputePassEncoder,
         numThreads: number,
         buffer1IsSource: boolean,
         pipeline: GPUComputePipeline,
         label: string
     }) {
-        const computePassEncoder = commandEncoder.beginComputePass({
-            label: label,
-        });
         computePassEncoder.setPipeline(pipeline);
         computePassEncoder.setBindGroup(0, this.uniformsManager.bindGroup);
-        //computePassEncoder.setBindGroup(1, this.storageBindGroupCurrent(buffer1IsSource));
         computePassEncoder.setBindGroup(1, this.storageBindGroup);
         computePassEncoder.dispatchWorkgroups(Math.ceil(numThreads / 256));
-        computePassEncoder.end();
     }
 
     // storageBindGroupCurrent(buffer1IsSource: boolean) {

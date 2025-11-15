@@ -33,7 +33,7 @@ fn doGridToParticle(
         for (var j = 0u; j < 3u; j++) {
             for (var k = 0u; k < 3u; k++) {
                 let weight = w[i].x * w[j].y * w[k].z;
-                let node = vec3u(grid_base) + vec3u(i, j, k);
+                let node = grid_base + vec3i(i32(i), i32(j), i32(k));
                 if (node.x >= gridResolution || node.y >= gridResolution || node.z >= gridResolution) {
                     continue;
                 }

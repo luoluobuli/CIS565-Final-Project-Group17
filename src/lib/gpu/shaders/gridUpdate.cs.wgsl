@@ -10,20 +10,20 @@ fn doGridUpdate(
     let threadIndex = gid.x;
     if threadIndex >= arrayLength(&gridData) { return; }
 
-    var grid = gridData[threadIndex];
+    let grid = &gridData[threadIndex];
 
-    let mass = atomicLoad(&grid.mass);
+    let mass = bitcast<f32>(atomicLoad(&(*grid).mass));
     if (mass > 0.0) {
         var vel = vec3f(
-            atomicLoad(&grid.vel.x),
-            atomicLoad(&grid.vel.y),
-            atomicLoad(&grid.vel.z)
+            bitcast<f32>(atomicLoad(&(*grid).vx)),
+            bitcast<f32>(atomicLoad(&(*grid).vy)),
+            bitcast<f32>(atomicLoad(&(*grid).vz)),
         ) / mass;
 
         vel += vec3f(0.0, 0.0, -9.81) * uniforms.simulationTimestep;
 
-        atomicStore(&grid.vel.x, vel.x);
-        atomicStore(&grid.vel.y, vel.y);
-        atomicStore(&grid.vel.z, vel.z);
+        atomicStore(&(*grid).vx, bitcast<u32>(vel.x));
+        atomicStore(&(*grid).vy, bitcast<u32>(vel.y));
+        atomicStore(&(*grid).vz, bitcast<u32>(vel.z));
     }
 }
