@@ -46,6 +46,8 @@ struct CellInfo {
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
+
+
 fn cellContainingPos(pos: vec3f) -> CellInfo {
     let cellDims = (uniforms.gridMaxCoords - uniforms.gridMinCoords) / f32(uniforms.gridResolution);
     let posFromGridMin = pos - uniforms.gridMinCoords;
@@ -64,4 +66,15 @@ fn cellContainingPos(pos: vec3f) -> CellInfo {
     cellInfo.dims = cellDims;
 
     return cellInfo;
+}
+
+fn computeVelocityWeightsKernel(fractionalPosFromCellMin: vec3f) -> array<vec3f, 3> {
+    var kernel: array<vec3f, 3>;
+
+    // values from quadratic B-spline weighting
+    kernel[0] = 0.5 * (1.5 - fractionalPosFromCellMin) * (1.5 - fractionalPosFromCellMin);
+    kernel[1] = 0.75 - (fractionalPosFromCellMin - 1.0) * (fractionalPosFromCellMin - 1.0);
+    kernel[2] = 0.5 * (fractionalPosFromCellMin - 0.5) * (fractionalPosFromCellMin - 0.5);
+
+    return kernel;
 }

@@ -20,11 +20,7 @@ fn doGridToParticle(
 
 
     let fractionalPosFromCellMin = (particle.pos - startCell.minPos) / startCell.dims;
-    var velocityWeightKernel: array<vec3f, 3>;
-    // values from quadratic B-spline weighting
-    velocityWeightKernel[0] = 0.5 * (1.5 - fractionalPosFromCellMin) * (1.5 - fractionalPosFromCellMin);
-    velocityWeightKernel[1] = 0.75 - (fractionalPosFromCellMin - 1.0) * (fractionalPosFromCellMin - 1.0);
-    velocityWeightKernel[2] = 0.5 * (fractionalPosFromCellMin - 0.5) * (fractionalPosFromCellMin - 0.5);
+    let velocityWeightKernel = computeVelocityWeightsKernel(fractionalPosFromCellMin);
 
     
 
