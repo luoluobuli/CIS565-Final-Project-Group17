@@ -1,4 +1,4 @@
-@group(1) @binding(1) var<storage, read_write> gridData: array<GridData>;
+@group(1) @binding(1) var<storage, read_write> gridData: array<CellData>;
 
 @compute
 @workgroup_size(256)
@@ -18,7 +18,7 @@ fn doGridUpdate(
     let cellMomentumChange = cellForce * uniforms.simulationTimestep;
 
 
-    atomicAdd(&(*grid).vx, i32(cellMomentumChange.x * uniforms.fixedPointScale));
-    atomicAdd(&(*grid).vy, i32(cellMomentumChange.y * uniforms.fixedPointScale));
-    atomicAdd(&(*grid).vz, i32(cellMomentumChange.z * uniforms.fixedPointScale));
+    atomicAdd(&(*grid).momentumX, i32(cellMomentumChange.x * uniforms.fixedPointScale));
+    atomicAdd(&(*grid).momentumY, i32(cellMomentumChange.y * uniforms.fixedPointScale));
+    atomicAdd(&(*grid).momentumZ, i32(cellMomentumChange.z * uniforms.fixedPointScale));
 }

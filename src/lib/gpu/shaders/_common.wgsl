@@ -28,19 +28,19 @@ struct ParticleData {
     mass: f32, // 48
 }
 
-struct GridData {
+struct CellData {
     // 0
 
     // vel: vec3f, // 12
     // mass: f32, // 16
-    vx: atomic<i32>, // 4
-    vy: atomic<i32>, // 8
-    vz: atomic<i32>, // 12
+    momentumX: atomic<i32>, // 4
+    momentumY: atomic<i32>, // 8
+    momentumZ: atomic<i32>, // 12
     mass: atomic<i32>, // 16
 }
 
 
-struct MpmParticleInfo {
+struct MpmParticleCellInfo {
     startCellNumber: vec3i,
     velocityWeightsKernel: array<vec3f, 3>,
 }
@@ -48,7 +48,7 @@ struct MpmParticleInfo {
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
 
-fn calculateMpmParticleInfo(pos: vec3f) -> MpmParticleInfo {
+fn calculateMpmParticleCellInfo(pos: vec3f) -> MpmParticleCellInfo {
     let cellDims = (uniforms.gridMaxCoords - uniforms.gridMinCoords) / f32(uniforms.gridResolution);
     let posFromGridMin = pos - uniforms.gridMinCoords;
 
@@ -63,7 +63,7 @@ fn calculateMpmParticleInfo(pos: vec3f) -> MpmParticleInfo {
 
 
 
-    var particleInfo: MpmParticleInfo;
+    var particleInfo: MpmParticleCellInfo;
 
     particleInfo.startCellNumber = cellNumber;
 

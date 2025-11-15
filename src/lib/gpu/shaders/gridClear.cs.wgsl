@@ -1,4 +1,4 @@
-@group(1) @binding(1) var<storage, read_write> gridData: array<GridData>;
+@group(1) @binding(1) var<storage, read_write> gridData: array<CellData>;
 
 @compute
 @workgroup_size(256)
@@ -10,8 +10,8 @@ fn doClearGrid(
 
     let grid = &gridData[threadIndex];
 
-    atomicStore(&(*grid).vx, 0);
-    atomicStore(&(*grid).vy, 0);
-    atomicStore(&(*grid).vz, 0);
+    atomicStore(&(*grid).momentumX, 0);
+    atomicStore(&(*grid).momentumY, 0);
+    atomicStore(&(*grid).momentumZ, 0);
     atomicStore(&(*grid).mass, 0);
 }

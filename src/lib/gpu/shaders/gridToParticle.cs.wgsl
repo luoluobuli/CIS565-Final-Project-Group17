@@ -1,5 +1,5 @@
 @group(1) @binding(0) var<storage, read_write> particleDataOut: array<ParticleData>;
-@group(1) @binding(1) var<storage, read_write> gridDataIn: array<GridData>;
+@group(1) @binding(1) var<storage, read_write> gridDataIn: array<CellData>;
 
 @compute
 @workgroup_size(256)
@@ -12,7 +12,7 @@ fn doGridToParticle(
 
 
     var particle = particleDataOut[threadIndex];
-    let particleInfo = calculateMpmParticleInfo(particle.pos);
+    let particleInfo = calculateMpmParticleCellInfo(particle.pos);
 
 
 
@@ -33,9 +33,9 @@ fn doGridToParticle(
 
 
 
-                let cellMomentumX = f32(atomicLoad(&gridDataIn[cellIndex].vx)) / uniforms.fixedPointScale;
-                let cellMomentumY = f32(atomicLoad(&gridDataIn[cellIndex].vy)) / uniforms.fixedPointScale;
-                let cellMomentumZ = f32(atomicLoad(&gridDataIn[cellIndex].vz)) / uniforms.fixedPointScale;
+                let cellMomentumX = f32(atomicLoad(&gridDataIn[cellIndex].momentumX)) / uniforms.fixedPointScale;
+                let cellMomentumY = f32(atomicLoad(&gridDataIn[cellIndex].momentumY)) / uniforms.fixedPointScale;
+                let cellMomentumZ = f32(atomicLoad(&gridDataIn[cellIndex].momentumZ)) / uniforms.fixedPointScale;
                 let cellVelocity = vec3f(cellMomentumX, cellMomentumY, cellMomentumZ) / cellMass;
 
                 
