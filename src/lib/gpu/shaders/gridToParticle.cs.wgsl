@@ -12,14 +12,7 @@ fn doGridToParticle(
 
 
     var particle = particleDataOut[threadIndex];
-
-
-
-    // get the grid cell containing this particle
-    let startCell = cellContainingPos(particle.pos);
-
-    let fractionalPosFromCellMin = (particle.pos - startCell.minPos) / startCell.dims;
-    let velocityWeightKernel = computeVelocityWeightsKernel(fractionalPosFromCellMin);
+    let particleInfo = calculateMpmParticleInfo(particle.pos);
 
 
 
@@ -28,14 +21,17 @@ fn doGridToParticle(
     for (var offsetZ = -1i; offsetZ <= 1i; offsetZ++) {
         for (var offsetY = -1i; offsetY <= 1i; offsetY++) {
             for (var offsetX = -1i; offsetX <= 1i; offsetX++) {
-                let cellNumber = startCell.number + vec3i(offsetX, offsetY, offsetZ);
-
+                let cellNumber = particleInfo.startCellNumber + vec3i(offsetX, offsetY, offsetZ);
                 if any(vec3i(0) > cellNumber) || any(cellNumber >= vec3i(uniforms.gridResolution)) { continue; }
+
+
 
                 let cellIndex = u32(cellNumber.x) + uniforms.gridResolution * (u32(cellNumber.y) + uniforms.gridResolution * u32(cellNumber.z));
                 
                 let cellMass = f32(atomicLoad(&gridDataIn[cellIndex].mass)) / uniforms.fixedPointScale;
                 if cellMass <= 0 { continue; }
+
+
 
                 let cellMomentumX = f32(atomicLoad(&gridDataIn[cellIndex].vx)) / uniforms.fixedPointScale;
                 let cellMomentumY = f32(atomicLoad(&gridDataIn[cellIndex].vy)) / uniforms.fixedPointScale;
@@ -43,9 +39,9 @@ fn doGridToParticle(
                 let cellVelocity = vec3f(cellMomentumX, cellMomentumY, cellMomentumZ) / cellMass;
 
                 
-                let cellWeight = velocityWeightKernel[u32(offsetX + 1)].x
-                    * velocityWeightKernel[u32(offsetY + 1)].y
-                    * velocityWeightKernel[u32(offsetZ + 1)].z;
+                let cellWeight = particleInfo.velocityWeightsKernel[u32(offsetX + 1)].x
+                    * particleInfo.velocityWeightsKernel[u32(offsetY + 1)].y
+                    * particleInfo.velocityWeightsKernel[u32(offsetZ + 1)].z;
                     
                 newParticleVelocity += cellWeight * cellVelocity;
             }

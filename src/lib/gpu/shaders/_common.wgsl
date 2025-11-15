@@ -39,16 +39,16 @@ struct GridData {
     mass: atomic<i32>, // 16
 }
 
-struct CellInfo {
-    number: vec3i,
-    minPos: vec3f,
-    dims: vec3f,
+
+struct MpmParticleInfo {
+    startCellNumber: vec3i,
+    velocityWeightsKernel: array<vec3f, 3>,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
 
-fn cellContainingPos(pos: vec3f) -> CellInfo {
+fn calculateMpmParticleInfo(pos: vec3f) -> MpmParticleInfo {
     let cellDims = (uniforms.gridMaxCoords - uniforms.gridMinCoords) / f32(uniforms.gridResolution);
     let posFromGridMin = pos - uniforms.gridMinCoords;
 
@@ -58,23 +58,19 @@ fn cellContainingPos(pos: vec3f) -> CellInfo {
         i32(posFromGridMin.z / cellDims.z),
     );
 
+    let minPos = uniforms.gridMinCoords + cellDims * vec3f(cellNumber);
+    let fractionalPosFromCellMin = (pos - minPos) / cellDims;
 
-    var cellInfo: CellInfo;
 
-    cellInfo.number = cellNumber;
-    cellInfo.minPos = uniforms.gridMinCoords + cellDims * vec3f(cellNumber);
-    cellInfo.dims = cellDims;
 
-    return cellInfo;
-}
+    var particleInfo: MpmParticleInfo;
 
-fn computeVelocityWeightsKernel(fractionalPosFromCellMin: vec3f) -> array<vec3f, 3> {
-    var kernel: array<vec3f, 3>;
+    particleInfo.startCellNumber = cellNumber;
 
     // values from quadratic B-spline weighting
-    kernel[0] = 0.5 * (1.5 - fractionalPosFromCellMin) * (1.5 - fractionalPosFromCellMin);
-    kernel[1] = 0.75 - (fractionalPosFromCellMin - 1.0) * (fractionalPosFromCellMin - 1.0);
-    kernel[2] = 0.5 * (fractionalPosFromCellMin - 0.5) * (fractionalPosFromCellMin - 0.5);
+    particleInfo.velocityWeightsKernel[0] = 0.5 * (1.5 - fractionalPosFromCellMin) * (1.5 - fractionalPosFromCellMin);
+    particleInfo.velocityWeightsKernel[1] = 0.75 - (fractionalPosFromCellMin - 1.0) * (fractionalPosFromCellMin - 1.0);
+    particleInfo.velocityWeightsKernel[2] = 0.5 * (fractionalPosFromCellMin - 0.5) * (fractionalPosFromCellMin - 0.5);
 
-    return kernel;
+    return particleInfo;
 }
