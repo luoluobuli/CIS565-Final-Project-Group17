@@ -39,13 +39,29 @@ struct GridData {
     mass: atomic<i32>, // 16
 }
 
+struct CellInfo {
+    number: vec3i,
+    minPos: vec3f,
+    dims: vec3f,
+}
+
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-fn cellNumberThatContainsPos(pos: vec3f) -> vec3i {
-    let gridCellSize = (uniforms.gridMaxCoords - uniforms.gridMinCoords) / f32(uniforms.gridResolution);
-    let posFromGridOrigin = pos - uniforms.gridMinCoords;
-    return vec3i(
-        i32(posFromGridOrigin.x / gridCellSize.x),
-        i32(posFromGridOrigin.y / gridCellSize.y),
-        i32(posFromGridOrigin.z / gridCellSize.z),
+fn cellContainingPos(pos: vec3f) -> CellInfo {
+    let cellDims = (uniforms.gridMaxCoords - uniforms.gridMinCoords) / f32(uniforms.gridResolution);
+    let posFromGridMin = pos - uniforms.gridMinCoords;
+
+    let cellNumber = vec3i(
+        i32(posFromGridMin.x / cellDims.x),
+        i32(posFromGridMin.y / cellDims.y),
+        i32(posFromGridMin.z / cellDims.z),
     );
+
+
+    var cellInfo: CellInfo;
+
+    cellInfo.number = cellNumber;
+    cellInfo.minPos = uniforms.gridMinCoords + cellDims * vec3f(cellNumber);
+    cellInfo.dims = cellDims;
+
+    return cellInfo;
 }

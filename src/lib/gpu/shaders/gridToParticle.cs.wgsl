@@ -14,27 +14,27 @@ fn doGridToParticle(
 
     var particle = particleDataOut[threadIndex];
 
-    let grid_base = vec3i(particle.pos * inv_dx - 0.5);
-
-    // fractional offset
-    let fx = particle.pos * inv_dx - vec3f(grid_base);
-
-    var velocityWeightKernel: array<vec3f, 3>;
-    // values from quadratic B-spline weighting
-    velocityWeightKernel[0] = 0.5 * (1.5 - fx) * (1.5 - fx);
-    velocityWeightKernel[1] = 0.75 - (fx - 1.0) * (fx - 1.0);
-    velocityWeightKernel[2] = 0.5 * (fx - 0.5) * (fx - 0.5);
-
 
     // get the grid cell containing this particle
-    let startCellNumber = cellNumberThatContainsPos(particle.pos);
+    let startCell = cellContainingPos(particle.pos);
 
-    // check the 3x3 neighborhood of cells around the cell that contains the particle
+
+    let fractionalPosFromCellMin = (particle.pos - startCell.minPos) / startCell.dims;
+    var velocityWeightKernel: array<vec3f, 3>;
+    // values from quadratic B-spline weighting
+    velocityWeightKernel[0] = 0.5 * (1.5 - fractionalPosFromCellMin) * (1.5 - fractionalPosFromCellMin);
+    velocityWeightKernel[1] = 0.75 - (fractionalPosFromCellMin - 1.0) * (fractionalPosFromCellMin - 1.0);
+    velocityWeightKernel[2] = 0.5 * (fractionalPosFromCellMin - 0.5) * (fractionalPosFromCellMin - 0.5);
+
+    
+
+
+    // enumerate the 3x3 neighborhood of cells around the cell that contains the particle
     var newParticleVelocity = vec3f(0); // cumulatively keep track of the cell's velocities, weighted using our kernel above
     for (var offsetZ = -1i; offsetZ <= 1i; offsetZ++) {
         for (var offsetY = -1i; offsetY <= 1i; offsetY++) {
             for (var offsetX = -1i; offsetX <= 1i; offsetX++) {
-                let cellNumber = startCellNumber + vec3i(offsetX, offsetY, offsetZ);
+                let cellNumber = startCell.number + vec3i(offsetX, offsetY, offsetZ);
 
                 if any(vec3i(0) > cellNumber) || any(cellNumber >= vec3i(uniforms.gridResolution)) { continue; }
 
@@ -58,9 +58,9 @@ fn doGridToParticle(
         }
     }
 
-
     particle.vel = newParticleVelocity;
     particle.pos += newParticleVelocity * uniforms.simulationTimestep;
+
 
     particleDataOut[threadIndex] = particle;
 }
